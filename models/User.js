@@ -1,4 +1,5 @@
 var mongoose = require('mongoose');
+var bcrypt = require('bcryptjs');
 
 // schema // 1
 var userSchema = mongoose.Schema({
@@ -47,7 +48,9 @@ userSchema.path('password').validate(function(v) {
     if(!user.currentPassword){
       user.invalidate('currentPassword', 'Current Password is required!');
     }
-    else if(user.currentPassword != user.originalPassword){
+    else if(!bcrypt.compareSync(user.currentPassword, user.originalPassword)){ 
+      // user.currenPassword는 사용자에게 입력받은 text, user.originalPassword가 기존에 있던 pw
+      // text를 hash롤 바꿔 그 값이 일치 하는지 서로 확인
       user.invalidate('currentPassword', 'Current Password is invalid!');
     }
 
@@ -56,6 +59,26 @@ userSchema.path('password').validate(function(v) {
     }
   }
 });
+
+//hash password
+userSchema.pre('save', function (next){
+  // 'save' 함수가 발생하기 전에 실행, 즉 user를 생성하거나 수정한뒤 save 하기 전에 실행
+  var user = this;
+  if(!user.isModified('password')){ // db 값과 비교해서 변경된 경우 true를 반환
+    return next();
+  }
+  else {
+    user.password = bcrypt.hashSync(user.password); //pw의 hash 값을 db에 저장
+    return next();
+  }
+});
+
+userSchema.methods.authenticate = function (password) {
+  //user의 pw해시 값과 입력 받은 text 값을 비교하는 함수
+  var user = this;
+  return bcrypt.compareSync(password,user.password);
+};
+
 
 // model & export
 var User = mongoose.model('user',userSchema);
