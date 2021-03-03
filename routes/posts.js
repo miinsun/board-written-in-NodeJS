@@ -5,9 +5,9 @@ var util = require('../util');
 
 // Index 
 router.get('/', function(req, res){
-  Post.find({})                  // 1
-  .sort('-createdAt')            // 1
-  .exec(function(err, posts){    // 1
+  Post.find({})                  
+  .sort('-createdAt')           
+  .exec(function(err, posts){   
     if(err) return res.json(err);
     res.render('posts/index', {posts:posts});
   });
@@ -25,8 +25,8 @@ router.post('/', function(req, res){
   Post.create(req.body, function(err, post){
     if(err){
       req.flash('post', post);
-      req.flash('errors', utile.parseError(err));
-      res.redirect('/posts/new');    
+      req.flash('errors', util.parseError(err));
+      return res.redirect('/posts/new');    
     }
     res.redirect('/posts');
   });
