@@ -17,4 +17,20 @@ util.parseError = function(errors){
   return parsed;
 }
 
+util.isLoggedin = function(req, res, next){
+  if(req.isAuthenticated()){
+    next();
+  }
+  else{
+    req.flash('errors', {login:'Please login first'});
+    res.redirect('/login');
+  }
+}
+
+util.noPermission = function(req, res){
+  req.flash('errors', {login:'당신은 권합이 없습니다. 운영자에게 문의하세요'});
+  req.logout();
+  res.redirect('login');
+}
+
 module.exports = util;
