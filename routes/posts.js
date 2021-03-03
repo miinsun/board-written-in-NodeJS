@@ -5,7 +5,8 @@ var util = require('../util');
 
 // Index 
 router.get('/', function(req, res){
-  Post.find({})                  
+  Post.find({})
+  .populate('author') //relation이 형성돼 있는 항목의 값을 생성
   .sort('-createdAt')           
   .exec(function(err, posts){   
     if(err) return res.json(err);
@@ -22,6 +23,7 @@ router.get('/new', function(req, res){
 
 // create
 router.post('/', function(req, res){
+  req.body.author = req.user._id; //req.user는 로그인을 하면 passport에서 자동으로 생성해준다.
   Post.create(req.body, function(err, post){
     if(err){
       req.flash('post', post);
@@ -34,10 +36,12 @@ router.post('/', function(req, res){
 
 // show
 router.get('/:id', function(req, res){
-  Post.findOne({_id:req.params.id}, function(err, post){
-    if(err) return res.json(err);
-    res.render('posts/show', {post:post});
-  });
+  Post.findOne({_id:req.params.id})
+    .populate('author')
+    .exec(function(err, post){
+      if(err) return res.json(err);
+      res.render('posts/show', {post:post});
+    });
 });
 
 // edit

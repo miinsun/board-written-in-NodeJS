@@ -15,7 +15,9 @@ body {
 .board-table {
   table-layout: fixed;
 }
-.board-table .date {
+
+.board-table .date,
+.board-table .author {
   width: 100px;
 }
 
