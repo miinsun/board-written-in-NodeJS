@@ -4,13 +4,27 @@ var Post = require('../models/Post');
 var util = require('../util');
 
 // Index 
-router.get('/', function(req, res){
-  Post.find({})
-  .populate('author') //relation이 형성돼 있는 항목의 값을 생성
-  .sort('-createdAt')           
-  .exec(function(err, posts){   
-    if(err) return res.json(err);
-    res.render('posts/index', {posts:posts});
+router.get('/', async function(req, res){ 
+  var page = Math.max(1, parseInt(req.query.page));   
+  var limit = Math.max(1, parseInt(req.query.limit)); 
+  page = !isNaN(page)?page:1;                         
+  limit = !isNaN(limit)?limit:10;                     
+
+  var skip = (page-1)*limit; 
+  var count = await Post.countDocuments({}); 
+  var maxPage = Math.ceil(count/limit); 
+  var posts = await Post.find({}) 
+    .populate('author')
+    .sort('-createdAt')
+    .skip(skip)   
+    .limit(limit) 
+    .exec();
+
+  res.render('posts/index', {
+    posts:posts,
+    currentPage:page, 
+    maxPage:maxPage,  
+    limit:limit       
   });
 });
 
@@ -28,9 +42,9 @@ router.post('/', util.isLoggedin, function(req, res){
     if(err){
       req.flash('post', post);
       req.flash('errors', util.parseError(err));
-      return res.redirect('/posts/new');    
+      return res.redirect('/posts/new' + res.locals.getPostQueryString());    
     }
-    res.redirect('/posts');
+    res.redirect('/posts' + res.locals.getPostQueryString(false, {page:1}));
   });
 });
 
@@ -45,40 +59,40 @@ router.get('/:id', function(req, res){
 });
 
 // edit
-router.get('/:id/edit', util.isLoggedin, function(req, res){
+router.get('/:id/edit', util.isLoggedin, checkPermission, function(req, res){
   var post = req.flash('post')[0];
   var errors = req.flash('errors')[0] || {};
   if(!post){
     Post.findOne({_id:req.params.id}, function(err, post){
-      if(err) return res.json(err);
-      res.render('posts/edit', {post:post});
-    }); 
+        if(err) return res.json(err);
+        res.render('posts/edit', { post:post, errors:errors });
+      });
   }
-  else{
+  else {
     post._id = req.params.id;
-    res.render('/posts/edit', {post:post, errors:errors});
+    res.render('posts/edit', { post:post, errors:errors });
   }
 });
 
 // update
-router.put('/:id', util.isLoggedin, function(req, res){
+router.put('/:id', util.isLoggedin, checkPermission, function(req, res){
   req.body.updatedAt = Date.now(); //2
   Post.findOneAndUpdate({_id:req.params.id}, req.body, {runValidators : true}, function(err, post){
     if(err){
       req.flash('post', req.body);
       req.flash('errors', util.parseError(err));
 
-      res.redirect("/posts/"+req.params.id+ '/edit');
+      return res.redirect("/posts/"+req.params.id+ '/edit' + res.locals.getPostQueryString());
     }
-    res.redirect('/posts/' + req.params.id);
+    res.redirect('/posts/' + req.params.id + res.locals.getPostQueryString());
   });
 });
 
 // destroy
-router.delete('/:id', util.isLoggedin, function(req, res){
+router.delete('/:id', util.isLoggedin,  checkPermission, function(req, res){
   Post.deleteOne({_id:req.params.id}, function(err){
     if(err) return res.json(err);
-    res.redirect('/posts');
+    res.redirect('/posts' + res.locals.getPostQueryString());
   });
 });
 
@@ -91,5 +105,5 @@ function checkPermission(req, res, next){
     if(post.author != req.user.id) return util.noPermission(req, res);
 
     next();
-  });
+  })
 }
