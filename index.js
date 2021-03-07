@@ -48,6 +48,7 @@ app.use(function(req, res, next){ // 함수 안에 반드시 next를 포함해�
 app.use('/', require('./routes/home'));
 app.use('/posts', util.getPostQueryString, require('./routes/posts'));
 app.use('/users', require('./routes/users'));
+app.use('/comments', util.getPostQueryString, require('./routes/comments'));
 
 // Port setting
 var port = 3000;
